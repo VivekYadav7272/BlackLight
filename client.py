@@ -82,15 +82,14 @@ def send(conn):
 		print("Some error caused you to disconnect to the chatroom.\n Pass the error code/message to dev: \n\n", str(e))
 
 
-
-
 # Receive message.
 def recv(conn):
 	global msgArr
 	while True:
 		msg = str(conn.recv(5000), 'utf-8')
 		if len(msgArr) > 0:
-			# Clear the previous message...
+			# If any message was being typed, clear it, paste the incoming message, then paste the typed message,
+            # giving the illusion that the message being typed was 'shifted' one line down after new message appeared.
 			print('\b' * len(msgArr), end='')
 			print(' ' * len(msgArr), end='')
 			print('\b' * len(msgArr), end='')
