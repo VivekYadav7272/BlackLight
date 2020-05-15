@@ -29,7 +29,9 @@ def mainloop(conn, username):
 def auth(conn):
     # TODO: Make the authorise code better -- Done, kinda. Need to make the verifications on the server side too.
     username = str(conn.recv(50), 'utf-8')
-
+    
+    # Until user gives a valid username which is not already existing, keep waiting
+    # for a new username.
     while username in user_connections.keys():
     	conn.send(str.encode('0'))
     	username = str(conn.recv(50), 'utf-8')
@@ -46,9 +48,9 @@ def send(conn, message, sender_username):
 
 
 # Send a message to every active user.
-def sendall(conn, message, sender_username):
+def sendall(sender_conn, message, sender_username):
 	for connection in user_connections.values():
-		if connection is conn:
+		if connection is sender_conn:
 			continue
 		send(connection, message, sender_username)
 
@@ -60,21 +62,23 @@ def recv(conn, username):
 		
 	    msg = str(conn.recv(5000), 'utf-8')
 	    print(msg)
-	    if msg.count(' ') == 0:
-	    	sendall(conn, msg, username)
-	    	continue
-	    	
-	    first_word = msg[:msg.index(' ')]
-
-	    if first_word[0] == '@':
-	    	recipient = first_word[1:]
+        try:
+	        first_word = msg[:msg.index(' ')]
+        except ValueError: # No space in message.
+            sendall(conn, msg, username)
+            continue
+            
+	    if first_word[0] == '@':    # Message is addressed to a specific person.
+	    	recipient = first_word[1:]  # username of receiver of message.
 
 	    	if recipient in user_connections.keys():
-	    		msg = msg[msg.index(' ') + 1 : ]
-
-	    		send(user_connections[recipient], msg, username)
+                try:
+	    		    msg = msg[msg.index(' ') + 1 : ]
+                    send(user_connections[recipient], msg, username)
+                except ValueError:  # Empty message.
+                    send(user_connections[recipient], f"<{username} sent an empty message>", username)
 	    	else:
-	    		conn.send(str.encode(recipient + " is offline, or doesn't exist."))
+	    		conn.send(str.encode(f"System: {recipient} is offline, or doesn't exist."))
 	    else:
 	    	sendall(conn, msg, username)
 
